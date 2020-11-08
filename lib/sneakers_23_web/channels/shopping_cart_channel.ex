@@ -11,6 +11,16 @@ defmodule Sneakers23Web.ShoppingCartChannel do
     {:ok, socket}
   end
 
+  def handle_in("add_item", %{"item_id" => id}, socket = %{assigns: %{cart: cart}}) do
+    case Checkout.add_item_to_cart(cart, String.to_integer(id)) do
+      {:ok, new_cart} ->
+        socket = assign(socket, :cart, new_cart)
+        {:reply, {:ok, cart_to_map(new_cart)}, socket}
+      {:error, :duplicate_item} ->
+        {:reply, {:error, %{error: "duplucate_item"}}, socket}
+    end
+  end
+
   def handle_info(:send_cart, socket = %{assigns: %{cart: cart}}) do
     push(socket, "cart", cart_to_map(cart))
     {:noreply, socket}

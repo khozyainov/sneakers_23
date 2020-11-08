@@ -34,3 +34,7 @@ function setupProductChannel(socket, productId) {
         dom.replaceProductComingSoon(productId, size_html)
     })
 }
+
+dom.onItemClick((itemId) => {
+    Cart.addCartItem(cartChannel, itemId)
+})

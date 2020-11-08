@@ -37,6 +37,15 @@ dom.renderCartHtml = (cart) => {
     cartContainer.innerHTML = getCartHtml(cart)
 }
 
+dom.onItemClick = (fn) => {
+    document.addEventListener("click", (event) => {
+        if (!event.target.matches('.size-container__entry')) { return }
+        event.preventDefault()
+
+        fn(event.target.value)
+    })
+}
+
 dom.getProductIds = getProductIds
 dom.replaceProductComingSoon = replaceProductComingSoon
 dom.updateItemLevel = updateItemLevel
