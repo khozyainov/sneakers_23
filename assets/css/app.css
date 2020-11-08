@@ -23,7 +23,7 @@ header a {
 
 .product-listing {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-auto-rows: auto;
 
   margin-bottom: 35px;
 }
