@@ -3,13 +3,20 @@ defmodule Sneakers23Web.ShoppingCartChannel do
   alias Sneakers23.Checkout
   import Sneakers23Web.CartView, only: [cart_to_map: 1]
 
-  intercept ["cart_updated"]
+  intercept(["cart_updated"])
 
   def join("cart:" <> id, params, socket) when byte_size(id) == 64 do
     cart = get_cart(params)
     socket = assign(socket, :cart, cart)
     send(self(), :send_cart)
     enqueue_cart_subscriptions(cart)
+
+    socket =
+      socket
+      |> assign(:cart_id, id)
+      |> assign(:page, Map.get(params, "page", nil))
+
+    send(self(), :after_join)
 
     {:ok, socket}
   end
@@ -21,6 +28,7 @@ defmodule Sneakers23Web.ShoppingCartChannel do
         broadcast_cart(new_cart, socket, added: [id])
         socket = assign(socket, :cart, new_cart)
         {:reply, {:ok, cart_to_map(new_cart)}, socket}
+
       {:error, :duplicate_item} ->
         {:reply, {:error, %{error: "duplucate_item"}}, socket}
     end
@@ -33,6 +41,7 @@ defmodule Sneakers23Web.ShoppingCartChannel do
         broadcast_cart(new_cart, socket, removed: [id])
         socket = assign(socket, :cart, new_cart)
         {:reply, {:ok, cart_to_map(new_cart)}, socket}
+
       {:error, :not_found} ->
         {:reply, {:error, %{error: "not_found"}}, socket}
     end
@@ -43,6 +52,7 @@ defmodule Sneakers23Web.ShoppingCartChannel do
     cart = get_cart(params)
     socket = assign(socket, :cart, cart)
     push(socket, "cart", cart_to_map(cart))
+    send(self(), :update_tracked_cart)
 
     {:noreply, socket}
   end
@@ -67,6 +77,21 @@ defmodule Sneakers23Web.ShoppingCartChannel do
     {:noreply, socket}
   end
 
+  def handle_info(
+        :after_join,
+        socket = %{
+          assigns: %{cart: cart, cart_id: id, page: page}
+        }
+      ) do
+    {:ok, _} = Sneakers23Web.CartTracker.track_cart(socket, %{cart: cart, id: id, page: page})
+    {:noreply, socket}
+  end
+
+  def handle_info(:update_tracked_cart, socket = %{assigns: %{cart: cart, cart_id: id}}) do
+    {:ok, _} = Sneakers23Web.CartTracker.update_cart(socket, %{cart: cart, id: id})
+    {:noreply, socket}
+  end
+
   defp get_cart(params) do
     params
     |> Map.get("serialized", nil)
@@ -74,6 +99,7 @@ defmodule Sneakers23Web.ShoppingCartChannel do
   end
 
   defp broadcast_cart(cart, socket, opts) do
+    send(self(), :update_tracked_cart)
     {:ok, serialized} = Checkout.export_cart(cart)
 
     broadcast_from(socket, "cart_updated", %{
@@ -92,7 +118,7 @@ defmodule Sneakers23Web.ShoppingCartChannel do
   end
 
   defp modify_subscriptions(%{"added" => add, "removed" => remove}) do
-    Enum.each(add, & send(self(), {:subscribe, &1}))
-    Enum.each(remove, & send(self(), {:unsubscribe, &1}))
+    Enum.each(add, &send(self(), {:subscribe, &1}))
+    Enum.each(remove, &send(self(), {:unsubscribe, &1}))
   end
 end

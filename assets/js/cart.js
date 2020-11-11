@@ -34,7 +34,8 @@ Cart.removeCartItem = ({ cartChannel, onCartChange }, itemId) => {
 
 function channelParams() {
     return {
-        serialized: localStorage.storedCart
+        serialized: localStorage.storedCart,
+        page: window.location.pathname
     }
 }
 
