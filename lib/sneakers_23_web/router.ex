@@ -8,6 +8,7 @@
 #---
 defmodule Sneakers23Web.Router do
   use Sneakers23Web, :router
+  import Phoenix.LiveView.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -16,6 +17,7 @@ defmodule Sneakers23Web.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug Sneakers23Web.CartIdPlug
+    plug :put_root_layout, {Sneakers23Web.LayoutView, :root}
   end
 
   pipeline :api do
@@ -40,5 +42,11 @@ defmodule Sneakers23Web.Router do
     pipe_through [:browser, :admin]
 
     get "/", DashboardController, :index
+  end
+
+  scope "/", Sneakers23Web do
+    pipe_through :browser
+
+    live "/drops", ProductPageLive
   end
 end

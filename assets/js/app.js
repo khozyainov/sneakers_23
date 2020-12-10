@@ -7,15 +7,20 @@
  * Visit http://www.pragmaticprogrammer.com/titles/sbsockets for more book information.
 ***/
 import css from "../css/app.css"
-import { productSocket } from "./socket"
+import { productSocket, connectToLiveView } from "./socket"
 import dom from "./dom"
 import Cart from "./cart"
 
 productSocket.connect()
 
-const productIds = dom.getProductIds()
-
-productIds.forEach((id) => setupProductChannel(productSocket, id))
+if (document.querySelectorAll("[data-phx-main]").length) {
+    console.info("Connect live")
+    connectToLiveView()
+} else {
+    console.info("Connect channels")
+    const productIds = dom.getProductIds()
+    productIds.forEach((id) => setupProductChannel(productSocket, id))
+}
 
 const cartChannel = Cart.setupCartChannel(productSocket, window.cartId, {
     onCartChange: (newCart) => {
